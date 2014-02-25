@@ -14,7 +14,7 @@
 
 # Make sure at least one argument was provided.
 if [ "$#" -eq 0 ]; then
-  echo "Error: Mising profile directory name argument."
+  echo "Error: Mising source directory name."
   echo "For help, type platform-build.sh -h"
   exit 1
 fi
@@ -94,24 +94,25 @@ DESTDIR=$(readlink -f "$DESTDIR")
 
 # Build Drupal core and move the profile to the correct place.
 (
-  echo "Building Drupal core..."
-
   # Backup the sites/default directory if it exists.
+  chmod -R +w $DESTDIR/sites/* || true
   if [ -d $DESTDIR/sites/default ]; then
-    mv $DESTDIR/sites/default sites-backup
+    echo "Backing up sites/default directory to $SRCDIR/sites-backup..."
+    mv $DESTDIR/sites/default $SRCDIR/sites-backup
   else
     mkdir -p $DESTDIR/sites/default
   fi
-  chmod +w $DESTDIR/sites/* || true
   rm -Rf $DESTDIR || true
 
   # Build Drupal core.
+  echo "Building Drupal core..."
   $DRUSH make $SRCDIR/project-core.make $DESTDIR
 
   # Restore the sites directory.
-  if [ -d sites-backup ]; then
+  if [ -d $SRCDIR/sites-backup ]; then
+    echo "Restoring sites/default directory..."
     rm -Rf $DESTDIR/sites/default
-    mv sites-backup/ $DESTDIR/sites/default
+    mv $SRCDIR/sites-backup/ $DESTDIR/sites/default
   fi
 
 
