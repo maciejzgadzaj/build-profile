@@ -1,5 +1,4 @@
 #!/bin/bash
-set -xe
 
 # -----------------------------------------------
 # Build the Drupal site with all the custom code.
@@ -13,39 +12,114 @@ set -xe
 # cd $ROOT
 
 
+# Make sure at least one argument was provided.
+if [ "$#" -eq 0 ]; then
+  echo "Error: Mising profile directory name argument."
+  echo "For help, type platform-build.sh -h"
+  exit 1
+fi
+
+if [ "$1" == "-h" ]; then
+  echo "Usage: platform-build.sh SOURCE_DIR [DESTINATION_DIR]"
+  echo "Builds Drupal installation using make scripts found in SOURCE_DIR directory."
+  echo "Make scripts should be named profile.make and profile-core.make."
+  echo "If no DESTINATION_DIR is specified, the new site will be built in ./www directory."
+  exit
+fi
+
+
+echo "Checking environment..."
+
+# Verify that source directory exists.
+SRCDIR=$(readlink -f "$1")
+if [ ! -d "$SRCDIR" ]; then
+  echo "Error: directory $SRCDIR does not exists"
+  exit 2
+fi
+
+# Verify that project.make file exists in the source directory.
+if [ ! -f "$SRCDIR/project.make" ]; then
+  echo "Error: $SRCDIR/project.make file is missing"
+  exit 3
+fi
+
+# Verify that project-core.make file exists in the source directory.
+if [ ! -f "$SRCDIR/project-core.make" ]; then
+  echo "Error: $SRCDIR/project-core.make file is missing"
+  exit 4
+fi
+
+# Get the installation profile name from the source directory
+# (it might be different from the source directory name).
+if [ -f $SRCDIR/$SRCDIR.info ]; then
+  PROFILE=$SRCDIR
+else
+  # Check if there is exactly one .info file in the source directory.
+  COUNT=`ls -1 $SRCDIR/*.info 2>/dev/null | wc -l`
+  if [ $COUNT == 1 ]; then
+    # Get the core file name to be used as installation profile name.
+    PROFILE=$(ls $SRCDIR/*.info)
+    PROFILE=${PROFILE%%.*}
+    PROFILE=${PROFILE##*/}
+    echo "$PROFILE installation profile found in $SRCDIR directory."
+  else
+    echo "Error: could not find an installation profile in $SRCDIR directory."
+    exit 5
+  fi
+fi
+
+
+# Get destination directory.
+if [ $2 ]; then
+  DESTDIR="$2"
+else
+  DESTDIR="www"
+fi
+# Convert it to the absolute path.
+DESTDIR=$(readlink -f "$DESTDIR")
+
+
 # Build the profile using drush.
 (
-  cd bpost_eshop
+  echo "Downloading contrib modules/themes/libraries..."
+
+  cd $SRCDIR
 
   # Download the contrib modules/themes/libraries (see: https://drupal.org/comment/8310967#comment-8310967)
   $DRUSH make --no-core --contrib-destination="." project.make .
-  
+
   cd ..
 )
 
 
 # Build Drupal core and move the profile to the correct place.
 (
+  echo "Building Drupal core..."
+
   # Backup the sites/default directory if it exists.
-  if [ -d www/sites/default ]; then
-    mv www/sites/default sites-backup
+  if [ -d $DESTDIR/sites/default ]; then
+    mv $DESTDIR/sites/default sites-backup
   else
-    mkdir -p www/sites/default
+    mkdir -p $DESTDIR/sites/default
   fi
-  chmod +w www/sites/* || true
-  rm -Rf www || true
+  chmod +w $DESTDIR/sites/* || true
+  rm -Rf $DESTDIR || true
 
   # Build Drupal core.
-  $DRUSH make bpost_eshop/project-core.make www
+  $DRUSH make $SRCDIR/project-core.make $DESTDIR
 
   # Restore the sites directory.
   if [ -d sites-backup ]; then
-    rm -Rf www/sites/default
-    mv sites-backup/ www/sites/default
+    rm -Rf $DESTDIR/sites/default
+    mv sites-backup/ $DESTDIR/sites/default
   fi
 
 
   # Move the profile in place.
-  cd www/profiles
-  ln -s ../../bpost_eshop bpost_eshop
+  cd $DESTDIR/profiles
+  ln -s $SRCDIR $PROFILE
+
+  echo "Created symbolic link $DESTDIR/profiles/$PROFILE -> $SRCDIR."
+  echo
+  echo "Site successfully built in $DESTDIR directory."
 )
