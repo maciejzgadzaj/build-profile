@@ -59,16 +59,26 @@ if [ ! -d "$1" ]; then
 fi
 SRCDIR=$(realpath $1)
 
-# Verify that project.make file exists in the source directory.
-if [ ! -f "$SRCDIR/project.make" ]; then
-  echo "Error: $SRCDIR/project.make file is missing"
+# Verify that either project.make or drupal-org.make file exists in the source
+# directory.
+if [ ! -f "$SRCDIR/project.make" ] && [ ! -f "$SRCDIR/drupal-org.make" ]; then
+  echo "Error: neither project.make nor drupal-org.make could be found in $SRCDIR"
   exit 3
+elif [ -f "$SRCDIR/project.make" ]; then
+  PROJECTMAKE="$SRCDIR/project.make"
+else
+  PROJECTMAKE="$SRCDIR/drupal-org.make"
 fi
 
-# Verify that project-core.make file exists in the source directory.
-if [ ! -f "$SRCDIR/project-core.make" ]; then
-  echo "Error: $SRCDIR/project-core.make file is missing"
+# Verify that either project-core.make or drupal-org-core.make file exists in
+# the source directory.
+if [ ! -f "$SRCDIR/project-core.make" ] && [ ! -f "$SRCDIR/drupal-org-core.make" ]; then
+  echo "Error: neither project-core.make nor drupal-org-core.make could be found in $SRCDIR"
   exit 4
+elif [ -f "$SRCDIR/project.make" ]; then
+  COREMAKE="$SRCDIR/project-core.make"
+else
+  COREMAKE="$SRCDIR/drupal-org-core.make"
 fi
 
 # Get the installation profile name from the source directory
@@ -107,8 +117,9 @@ DESTDIR=$(realpath $DESTDIR)
 
   cd $SRCDIR
 
-  # Download the contrib modules/themes/libraries (see: https://drupal.org/comment/8310967#comment-8310967)
-  $DRUSH make --no-core --contrib-destination="." project.make .
+  # Download the contrib modules/themes/libraries
+  # (see: https://drupal.org/comment/8310967#comment-8310967)
+  $DRUSH make --no-core --no-cache --contrib-destination="." $PROJECTMAKE $SRCDIR/tmp
 
   cd ..
 )
@@ -117,18 +128,21 @@ DESTDIR=$(realpath $DESTDIR)
 # Build Drupal core and move the profile to the correct place.
 (
   # Backup the sites/default directory if it exists.
-  chmod -R +w $DESTDIR/sites/* || true
-  if [ -d $DESTDIR/sites/default ]; then
-    echo "Backing up sites/default directory to $SRCDIR/sites-backup..."
-    mv $DESTDIR/sites/default $SRCDIR/sites-backup
-  else
-    mkdir -p $DESTDIR/sites/default
+  if [ -d $DESTDIR ]; then
+    chmod -R +w $DESTDIR/sites/* || true
+    if [ -d $DESTDIR/sites/default ]; then
+      echo "Backing up sites/default directory to $SRCDIR/sites-backup..."
+      mv $DESTDIR/sites/default $SRCDIR/sites-backup
+    fi
+
+    echo "Removing existing destination $DESTDIR"
+    rm -Rf $DESTDIR || true
   fi
-  rm -Rf $DESTDIR || true
+
 
   # Build Drupal core.
   echo "Building Drupal core..."
-  $DRUSH make $SRCDIR/project-core.make $DESTDIR
+  $DRUSH make $COREMAKE $DESTDIR
 
   # Restore the sites directory.
   if [ -d $SRCDIR/sites-backup ]; then
@@ -137,12 +151,14 @@ DESTDIR=$(realpath $DESTDIR)
     mv $SRCDIR/sites-backup/ $DESTDIR/sites/default
   fi
 
+  # Move downloaded modules/themes/libraries to destination profile directory.
+  echo "Copying profile files to $DESTDIR/profiles/$PROFILE"
+  cp -r $SRCDIR/tmp $DESTDIR/profiles/$PROFILE
+  rm -rf $SRCDIR/tmp
+  # Copy main profile to destination profile directory.
+  rsync --archive --exclude '*.make' --exclude '.git' $SRCDIR/ $DESTDIR/profiles/$PROFILE/
 
-  # Move the profile in place.
-  cd $DESTDIR/profiles
-  ln -s $SRCDIR $PROFILE
 
-  echo "Created symbolic link $DESTDIR/profiles/$PROFILE -> $SRCDIR."
   echo
   echo "Site successfully built in $DESTDIR directory."
 )
