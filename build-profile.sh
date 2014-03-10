@@ -41,6 +41,7 @@ if [ "$#" -eq 0 ]; then
   exit 1
 fi
 
+# That argument might be request for help, display it then and exit.
 if [ "$1" == "-h" ] || [ "$1" == "--help" ]; then
   echo "Usage: platform-build.sh SOURCE_DIR [DESTINATION_DIR]"
   echo "Builds Drupal installation using make scripts found in SOURCE_DIR directory."
@@ -59,6 +60,7 @@ if [ ! -d "$1" ]; then
 fi
 SRCDIR=$(realpath $1)
 
+
 # Verify that either project.make or drupal-org.make file exists in the source
 # directory.
 if [ ! -f "$SRCDIR/project.make" ] && [ ! -f "$SRCDIR/drupal-org.make" ]; then
@@ -69,6 +71,8 @@ elif [ -f "$SRCDIR/project.make" ]; then
 else
   PROJECTMAKE="$SRCDIR/drupal-org.make"
 fi
+echo "Found project make file: $PROJECTMAKE"
+
 
 # Verify that either project-core.make or drupal-org-core.make file exists in
 # the source directory.
@@ -80,6 +84,8 @@ elif [ -f "$SRCDIR/project.make" ]; then
 else
   COREMAKE="$SRCDIR/drupal-org-core.make"
 fi
+echo "Found core make file: $COREMAKE"
+
 
 # Get the installation profile name from the source directory
 # (it might be different from the source directory name).
@@ -93,7 +99,7 @@ else
     PROFILE=$(ls $SRCDIR/*.info)
     PROFILE=${PROFILE%%.*}
     PROFILE=${PROFILE##*/}
-    echo "$PROFILE installation profile found in $SRCDIR directory."
+    echo "Found $PROFILE installation profile in $SRCDIR"
   else
     echo "Error: could not find an installation profile in $SRCDIR directory."
     exit 5
@@ -156,7 +162,7 @@ DESTDIR=$(realpath $DESTDIR)
   cp -r $SRCDIR/tmp $DESTDIR/profiles/$PROFILE
   rm -rf $SRCDIR/tmp
   # Copy main profile to destination profile directory.
-  rsync --archive --exclude '*.make' --exclude '.git' $SRCDIR/ $DESTDIR/profiles/$PROFILE/
+  rsync --archive --exclude '*.make' --exclude '.git*' $SRCDIR/ $DESTDIR/profiles/$PROFILE/
 
 
   echo
