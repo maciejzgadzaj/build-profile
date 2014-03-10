@@ -4,6 +4,28 @@
 # Build the Drupal site with all the custom code.
 # -----------------------------------------------
 
+
+# Figure out directory real path.
+# readlink -f doesn't work on Macs, so this.
+function realpath () {
+  TARGET_FILE=$1
+
+  cd `dirname $TARGET_FILE`
+  TARGET_FILE=`basename $TARGET_FILE`
+
+  while [ -L "$TARGET_FILE" ]
+  do
+    TARGET_FILE=`readlink $TARGET_FILE`
+    cd `dirname $TARGET_FILE`
+    TARGET_FILE=`basename $TARGET_FILE`
+  done
+
+  PHYS_DIR=`pwd -P`
+  RESULT=$PHYS_DIR/$TARGET_FILE
+  echo $RESULT
+}
+
+
 # Drush executable.
 [[ $DRUSH && ${DRUSH-x} ]] || DRUSH=drush
 
@@ -19,7 +41,7 @@ if [ "$#" -eq 0 ]; then
   exit 1
 fi
 
-if [ "$1" == "-h" ]; then
+if [ "$1" == "-h" ] || [ "$1" == "--help" ]; then
   echo "Usage: platform-build.sh SOURCE_DIR [DESTINATION_DIR]"
   echo "Builds Drupal installation using make scripts found in SOURCE_DIR directory."
   echo "Make scripts should be named profile.make and profile-core.make."
@@ -31,11 +53,11 @@ fi
 echo "Checking environment..."
 
 # Verify that source directory exists.
-SRCDIR=$(readlink -f "$1")
-if [ ! -d "$SRCDIR" ]; then
-  echo "Error: directory $SRCDIR does not exists"
+if [ ! -d "$1" ]; then
+  echo "Error: source directory $1 does not exists"
   exit 2
 fi
+SRCDIR=$(realpath $1)
 
 # Verify that project.make file exists in the source directory.
 if [ ! -f "$SRCDIR/project.make" ]; then
@@ -76,7 +98,7 @@ else
   DESTDIR="www"
 fi
 # Convert it to the absolute path.
-DESTDIR=$(readlink -f "$DESTDIR")
+DESTDIR=$(realpath $DESTDIR)
 
 
 # Build the profile using drush.
