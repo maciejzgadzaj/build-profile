@@ -36,7 +36,7 @@ function realpath () {
 
 # Make sure at least one argument was provided.
 if [ "$#" -eq 0 ]; then
-  echo "Error: Mising source directory name."
+  echo -e "\e[1;31mError: Mising source directory name.\e[0m"
   echo "For help, type platform-build.sh -h"
   exit 1
 fi
@@ -55,7 +55,7 @@ echo "Checking environment..."
 
 # Verify that source directory exists.
 if [ ! -d "$1" ]; then
-  echo "Error: source directory $1 does not exists"
+  echo -e "\e[1;31mError: source directory $1 does not exists.\e[0m"
   exit 2
 fi
 SRCDIR=$(realpath $1)
@@ -64,7 +64,7 @@ SRCDIR=$(realpath $1)
 # Verify that either project.make or drupal-org.make file exists in the source
 # directory.
 if [ ! -f "$SRCDIR/project.make" ] && [ ! -f "$SRCDIR/drupal-org.make" ]; then
-  echo "Error: neither project.make nor drupal-org.make could be found in $SRCDIR"
+  echo -e "\e[1;31mError: neither project.make nor drupal-org.make could be found in $SRCDIR\e[0m"
   exit 3
 elif [ -f "$SRCDIR/project.make" ]; then
   PROJECTMAKE="$SRCDIR/project.make"
@@ -77,7 +77,7 @@ echo "Found project make file: $PROJECTMAKE"
 # Verify that either project-core.make or drupal-org-core.make file exists in
 # the source directory.
 if [ ! -f "$SRCDIR/project-core.make" ] && [ ! -f "$SRCDIR/drupal-org-core.make" ]; then
-  echo "Error: neither project-core.make nor drupal-org-core.make could be found in $SRCDIR"
+  echo -e "\e[1;31mError: neither project-core.make nor drupal-org-core.make could be found in $SRCDIR\e[0m"
   exit 4
 elif [ -f "$SRCDIR/project.make" ]; then
   COREMAKE="$SRCDIR/project-core.make"
@@ -101,7 +101,7 @@ else
     PROFILE=${PROFILE##*/}
     echo "Found $PROFILE installation profile in $SRCDIR"
   else
-    echo "Error: could not find an installation profile in $SRCDIR directory."
+    echo -e "\e[1;31mError: could not find an installation profile in $SRCDIR directory.\e[0m"
     exit 5
   fi
 fi
