@@ -97,8 +97,8 @@ else
   if [ $COUNT == 1 ]; then
     # Get the core file name to be used as installation profile name.
     PROFILE=$(ls $SRCDIR/*.info)
-    PROFILE=${PROFILE%%.*}
     PROFILE=${PROFILE##*/}
+    PROFILE=${PROFILE%%.*}
     echo "Found $PROFILE installation profile in $SRCDIR"
   else
     echo -e "\e[1;31mError: could not find an installation profile in $SRCDIR directory.\e[0m"
