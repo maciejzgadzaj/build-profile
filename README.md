@@ -5,7 +5,7 @@ A script to build a [Drupal](https://drupal.org/) site from *make* files with al
 
 ## Usage
 
-`platform-build.sh SOURCE_DIR [DESTINATION_DIR]`
+`build-profile.sh SOURCE_DIR [DESTINATION_DIR]`
 
 Builds Drupal installation using *make* scripts found in `SOURCE_DIR` directory.
 
@@ -25,5 +25,5 @@ Clone *2.x* branch of Drupal [Commerce Kickstart](https://drupal.org/project/com
 
 ```shell
 git clone --branch 7.x-2.x http://git.drupal.org/project/commerce_kickstart.git
-./platform-build.sh commerce_kickstart /var/www
+./build-profile.sh commerce_kickstart /var/www
 ```
